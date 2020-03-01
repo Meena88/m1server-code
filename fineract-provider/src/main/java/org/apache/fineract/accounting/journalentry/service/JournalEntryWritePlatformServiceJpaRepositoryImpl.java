@@ -27,7 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.apache.fineract.organisation.office.exception.OfficeNotFoundException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.fineract.accounting.closure.domain.GLClosure;
 import org.apache.fineract.accounting.closure.domain.GLClosureRepository;
@@ -596,6 +596,68 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                 GL_JOURNAL_ENTRY_INVALID_REASON.NO_DEBITS_OR_CREDITS, null, null, null); }
 
         checkDebitAndCreditAmounts(credits, debits);
+    }
+
+	
+	private void debitOrCreditEntriesForIncomeAndExpenseBooking(final JournalEntryCommand command, final Office office, final PaymentDetail paymentDetail,
+            final String currencyCode, final Date transactionDate, final SingleDebitOrCreditEntryCommand[] singleDebitOrCreditEntryCommands,
+            final String transactionId, final JournalEntryType type, final String referenceNumber){
+        final boolean manualEntry = false;
+
+        for (final SingleDebitOrCreditEntryCommand singleDebitOrCreditEntryCommand : singleDebitOrCreditEntryCommands) {
+            final GLAccount glAccount = this.glAccountRepository.findOne(singleDebitOrCreditEntryCommand.getGlAccountId());
+            if (glAccount == null) {
+                throw new GLAccountNotFoundException(singleDebitOrCreditEntryCommand.getGlAccountId());
+            }
+
+            String comments = command.getComments();
+            if (!StringUtils.isBlank(singleDebitOrCreditEntryCommand.getComments())) {
+                comments = singleDebitOrCreditEntryCommand.getComments();
+            }
+
+            /** Validate current code is appropriate **/
+            this.organisationCurrencyRepository.findOneWithNotFoundDetection(currencyCode);
+
+            final JournalEntry glJournalEntry = JournalEntry.createNew(office, paymentDetail, glAccount, currencyCode, transactionId,
+                    manualEntry, transactionDate, type, singleDebitOrCreditEntryCommand.getAmount(), comments, null, null, referenceNumber,
+                    null, null, null, null);
+            this.glJournalEntryRepository.saveAndFlush(glJournalEntry);
+        }
+
+    }
+
+    @Transactional
+    @Override
+    public String createJournalEntryForIncomeAndExpenseBookOff(final JournalEntryCommand journalEntryCommand) {
+        try{
+            journalEntryCommand.validateForCreate();
+
+            // check office is valid
+            final Long officeId = journalEntryCommand.getOfficeId();
+            final Office office = this.officeRepositoryWrapper.findOneWithNotFoundDetection(officeId);
+
+            final String currencyCode = journalEntryCommand.getCurrencyCode();
+
+            validateBusinessRulesForJournalEntries(journalEntryCommand);
+            /** Capture payment details **/
+            final PaymentDetail paymentDetail =null;
+
+            /** Set a transaction Id and save these Journal entries **/
+            final Date transactionDate = journalEntryCommand.getTransactionDate().toDate();
+            final String transactionId = generateTransactionId(officeId);
+            final String referenceNumber = journalEntryCommand.getReferenceNumber();
+
+            debitOrCreditEntriesForIncomeAndExpenseBooking(journalEntryCommand, office, paymentDetail, currencyCode, transactionDate,
+                    journalEntryCommand.getDebits(), transactionId, JournalEntryType.DEBIT, referenceNumber);
+
+            debitOrCreditEntriesForIncomeAndExpenseBooking(journalEntryCommand, office, paymentDetail, currencyCode, transactionDate,
+                    journalEntryCommand.getCredits(), transactionId, JournalEntryType.CREDIT, referenceNumber);
+
+            return transactionId;
+        }catch (final DataIntegrityViolationException dve) {
+            handleJournalEntryDataIntegrityIssues(dve);
+            return null;
+        }
     }
 
     private void saveAllDebitOrCreditEntries(final JournalEntryCommand command, final Office office, final PaymentDetail paymentDetail,
