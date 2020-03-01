@@ -168,5 +168,7 @@ public class JournalEntryCommand {
     public Long getAccountingRuleId() {
         return this.accountingRuleId;
     }
-
+public String getCurrencyCode() {
+		return this.currencyCode;
+	}
 }
