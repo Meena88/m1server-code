@@ -133,7 +133,7 @@ public class GLAccountsApiResource {
             @QueryParam("fetchRunningBalance") final boolean runningBalance) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
-        JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(false, runningBalance);
+       JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(false, runningBalance, false);
         final List<GLAccountData> glAccountDatas = this.glAccountReadPlatformService.retrieveAllGLAccounts(type, searchParam, usage,
                 manualEntriesAllowed, disabled, associationParametersData);
 
@@ -151,7 +151,7 @@ public class GLAccountsApiResource {
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(false, runningBalance);
+        JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(false, runningBalance, false);
         GLAccountData glAccountData = this.glAccountReadPlatformService.retrieveGLAccountById(glAccountId, associationParametersData);
         if (settings.isTemplate()) {
             glAccountData = handleTemplate(glAccountData);
