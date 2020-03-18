@@ -158,7 +158,7 @@ public final class ClientDataValidator {
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.mobileNoParamName, element)) {
             final String mobileNo = this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.mobileNoParamName, element);
             baseDataValidator.reset().parameter(ClientApiConstants.mobileNoParamName).value(mobileNo).notNull()
-                    .notExceedingLengthOf(10).minLengthOf(10);;
+                    .notExceedingLengthOf(10).minLengthOf(10);
         }
         
         
